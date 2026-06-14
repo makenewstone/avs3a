@@ -4,7 +4,8 @@ set(CMAKE_C_STANDARD 11)
 include_directories(include)
 include_directories(src)
 aux_source_directory(src SRC)
-set (CONFIG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/..)
+list(REMOVE_ITEM SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/main.c")
+set (CONFIG_DIR ${CMAKE_BINARY_DIR})
 set(prefix "${CMAKE_INSTALL_PREFIX}")
 set(includedir "include")
 set(libdir "lib")
@@ -27,3 +28,11 @@ install(TARGETS avs3a LIBRARY DESTINATION ${CMAKE_INSTALL_LIB_DIR} ARCHIVE DESTI
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDE_DIR}
         FILES_MATCHING PATTERN "*.h")
 install(FILES ${CONFIG_DIR}/${LIBNAME}.pc  DESTINATION  ${CMAKE_INSTALL_PKGCONFIG_DIR})
+
+# --- CLI decoder executable ---
+add_executable(avs3a_dec src/main.c)
+target_link_libraries(avs3a_dec avs3a)
+if(UNIX AND NOT APPLE)
+    target_link_libraries(avs3a_dec m)
+endif()
+install(TARGETS avs3a_dec RUNTIME DESTINATION bin)
