@@ -55,6 +55,11 @@ void Index2PairMapping(
         }
     }
 
+    /* Bitstream data error: index out of valid range for channelNum.
+     * Set safe default pairing (ch0-ch1) to avoid using uninitialized
+     * ch1/ch2 in downstream MsUpmix/mcIld access, which would crash. */
+    hPair->ch1 = 0;
+    hPair->ch2 = 1;
     return;
 }
 
@@ -86,7 +91,7 @@ static void InverseEnergyBalance(
 }
 
 /*
-MS upmix procedure
+ MS upmix procedure
 I/O params:
     float spec0[]                  (i/o) mid/left channel coefficients
     float spec1[]                  (i/o) side/right channel coefficients
@@ -113,7 +118,7 @@ static void MsUpmix(
 }
 
 /*
-Apply mcac decoding process
+ Apply mcac decoding process
 I/O params:
     AVS3_MC_DEC_HANDLE hMcac                (i/o) MCAC decoder structure
 */
@@ -161,7 +166,7 @@ void CalcChannelEnergies(
 }
 
 /*
-Get bit ratios for each channel
+ Get bit ratios for each channel
 I/O params:
     short channelNum                        (i) channel number
     float *mdctSpectrum[MAX_CHANNELS]       (i) mdct spectrum for each channel
@@ -208,7 +213,7 @@ void GetChRatio(
 
 
 /*
-Bits allocation with silence function
+ Bits allocation with silence function
     short totalBits                             (i) total number of bits
     const short splitRatio[MAX_CHANNELS]        (i) split ratio of bits
     short channelNum                            (i) number of channels

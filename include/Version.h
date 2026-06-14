@@ -2,7 +2,7 @@
 #include "Instruction.h"
 
 //add version for decoder
-#ifdef linux
+#if defined(linux)
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -20,10 +20,7 @@ GENERIC_VERION(1, 0, 0, 6)
 #ifdef __cplusplus
 }
 #endif
-#endif
-
-
-#ifdef ARCH_AARCH64
+#elif defined(ARCH_AARCH64)
 #ifdef __cplusplus
 extern "C" {
 #endif

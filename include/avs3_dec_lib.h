@@ -21,7 +21,7 @@ struct Avs3DecoderLib {
     AVS3DecoderHandle hAvs3Dec;
 
     uint16_t crcBs;
-    int16_t bytesPerFrame;
+    int32_t bytesPerFrame;
 };
 
 typedef struct Avs3DecoderLib *Avs3DecoderLibHandle;
@@ -40,7 +40,7 @@ int16_t Avs3DecoderLibParseHeader(
     Avs3DecoderLibHandle const hAvs3DecLib,
     uint8_t *headerBs,
     int16_t *rewind,
-    int16_t *bytesPerFrame);
+    int32_t *bytesPerFrame);
 
 int16_t Avs3DecoderLibProcess(
     Avs3DecoderLibHandle const hAvs3DecLib,

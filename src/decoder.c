@@ -215,7 +215,7 @@ void avs3_destroy_decoder(AVS3DecoderHandle hAvs3Dec)
 		1: success
 		2: data not enough
 */
-int parse_header(AVS3DecoderHandle hAvs3Dec, unsigned char* pData, int nLenIn, int isInitFrame, int *pnLenConsumed, unsigned short *crc)
+int parse_header(AVS3DecoderHandle hAvs3Dec, unsigned char* pData, int nLenIn, int isInitFrame, int *pnLenConsumed, uint16_t *crc)
 {
 //	printf("parse_header in, %p\n", hAvs3Dec);
     //	FILE *fBitstream = NULL;
@@ -380,6 +380,10 @@ int parse_header(AVS3DecoderHandle hAvs3Dec, unsigned char* pData, int nLenIn, i
 
     // Config decoder
     // sampling frequency
+    if (samplingRateIdx >= AVS3_SIZE_FS_TABLE) {
+        LOGD("%p, samplingRateIdx(%d) out of range [0, %d)", hAvs3Dec, samplingRateIdx, AVS3_SIZE_FS_TABLE);
+        return AVS3_FALSE;
+    }
     hAvs3Dec->outputFs = avs3SamplingRateTable[samplingRateIdx];
 
     // frame length
@@ -631,7 +635,7 @@ int parse_header(AVS3DecoderHandle hAvs3Dec, unsigned char* pData, int nLenIn, i
 int avs3_decode(AVS3DecoderHandle hAvs3Dec, unsigned char* pDataIN, int nLenIn, unsigned char* pDataOut, int *pnLenOut, int *pnLenConsumed)
 {
 //	printf("avs3_decode in, %p\n", hAvs3Dec);
-    short bytesPerFrame = 0;
+    int32_t bytesPerFrame = 0;
     short data[MAX_CHANNELS * FRAME_LEN];
 
 #ifdef CRC_CHECK
@@ -653,12 +657,22 @@ int avs3_decode(AVS3DecoderHandle hAvs3Dec, unsigned char* pDataIN, int nLenIn, 
         hAvs3Dec->bInited = 1;
     }
 
+    if (!hAvs3Dec->hBitstream) {
+        LOGD("%p, hBitstream is NULL, decoder not initialized properly\n", hAvs3Dec);
+        return AVS3_FALSE;
+    }
+
     uint8_t* bitstream = hAvs3Dec->hBitstream->bitstream;
 
     bytesPerFrame = (uint32_t)(ceil((float)hAvs3Dec->bitsPerFrame / 8));
 
     if (nLenIn < bytesPerFrame)
         return AVS3_DATA_NOT_ENOUGH;
+
+    if (bytesPerFrame > MAX_BS_BYTES) {
+        LOGD("%p, bytesPerFrame(%d) exceeds MAX_BS_BYTES(%d)\n", hAvs3Dec, bytesPerFrame, MAX_BS_BYTES);
+        return AVS3_FALSE;
+    }
 
     /* frame payload */
     memcpy(bitstream, pDataIN, bytesPerFrame);

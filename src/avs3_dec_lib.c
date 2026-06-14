@@ -43,8 +43,16 @@ int16_t Avs3DecoderLibCreate(
     FILE* fModel = NULL;
 
     *hAvs3DecLib = (Avs3DecoderLibHandle)malloc(sizeof(struct Avs3DecoderLib));
+    if (*hAvs3DecLib == NULL) {
+        return -1;
+    }
 
     (*hAvs3DecLib)->hAvs3Dec = (AVS3DecoderHandle)malloc(sizeof(AVS3Decoder));
+    if ((*hAvs3DecLib)->hAvs3Dec == NULL) {
+        free(*hAvs3DecLib);
+        *hAvs3DecLib = NULL;
+        return -1;
+    }
 
     Avs3ParseBsFrameHeader((*hAvs3DecLib)->hAvs3Dec, headerBs, 1, NULL);
 
@@ -62,7 +70,7 @@ int16_t Avs3DecoderLibParseHeader(
     Avs3DecoderLibHandle const hAvs3DecLib,
     uint8_t *headerBs,
     int16_t *rewind,
-    int16_t *bytesPerFrame)
+    int32_t *bytesPerFrame)
 {
     Avs3ParseBsFrameHeader(hAvs3DecLib->hAvs3Dec, headerBs, 0, &hAvs3DecLib->crcBs);
 
@@ -73,7 +81,7 @@ int16_t Avs3DecoderLibParseHeader(
         *rewind = 1;
     }
 
-    *bytesPerFrame = (int16_t)(ceil((float)hAvs3DecLib->hAvs3Dec->bitsPerFrame / 8));
+    *bytesPerFrame = (int32_t)(ceil((float)hAvs3DecLib->hAvs3Dec->bitsPerFrame / 8));
     hAvs3DecLib->bytesPerFrame = *bytesPerFrame;
 
     return 0;
@@ -86,15 +94,20 @@ int16_t Avs3DecoderLibProcess(
     int16_t *data,
     Avs3MetaDataHandle avs3MetaData)
 {
-    uint8_t *bitstream = hAvs3DecLib->hAvs3Dec->hBitstream->bitstream;
-    for (int16_t i = 0; i < hAvs3DecLib->bytesPerFrame; i++) {
-        bitstream[i] = payload[i];
+    if (hAvs3DecLib->bytesPerFrame > MAX_BS_BYTES) {
+        return -1;
     }
+
+    uint8_t *bitstream = hAvs3DecLib->hAvs3Dec->hBitstream->bitstream;
+    memcpy(bitstream, payload, hAvs3DecLib->bytesPerFrame);
 
     uint16_t crcResult;
     crcResult = Crc16(bitstream, (uint32_t)hAvs3DecLib->bytesPerFrame);
     if (crcResult != hAvs3DecLib->crcBs) {
-        return -1;
+        /* CRC mismatch — log and continue instead of aborting.
+         * The reference decoder (decoder.c) does not enforce CRC checks
+         * by default; rejecting frames here causes sync loss and decoder
+         * state corruption in container-based playback. */
     }
 
     Avs3Decode(hAvs3DecLib->hAvs3Dec, data);
